@@ -27,8 +27,9 @@ begin
           '           carried over to the output directory');
 end;
   
-procedure Convert(const APath: String; const AOutdir: String);
+function Convert(const APath: String; const AOutdir: String): Boolean;
 begin
+  result := True;
   try
     if not Assigned(sad_parser) then
       sad_parser := TSADHTMLParser.Create;
@@ -46,11 +47,13 @@ begin
   except
     on e: EMalformedDocumentException do
     begin
-      writeln('Couldn''t convert: Input File is Malformed: ', e.Message);
+      writeln('Couldn''t convert: Input File is Malformed: ', sLineBreak, e.Message);
+      result := False;
     end;
     on e: ENoSuchSectionException do
     begin
-      writeln('Couldn''t convert: ', e.Message);
+      writeln('Couldn''t convert: ', sLineBreak, e.Message);
+      result := False;
     end;
   end;
 end;
@@ -62,24 +65,26 @@ var
 begin
   search_attr := faAnyFile;
   
+  // Convert files
   FindFirst(AInDir+PathDelim+'*.sad', search_attr, search_rec);
   while search_rec.name <> '' do
   begin
     write('Converting ', AInDir+PathDelim+search_rec.name, '... ');
-    Convert(AInDir+PathDelim+search_rec.name, AOutDir);
-    writeln('DONE');
+    if Convert(AInDir+PathDelim+search_rec.name, AOutDir) then
+      writeln('DONE');
     if FindNext(search_rec) <> 0 then break;
   end;
   FindClose(search_rec);
 
   if not ARecurse then exit;
 
+  // Go to subdirectories if in Recursive mode
   search_attr := faDirectory;
 
   FindFirst(AInDir+PathDelim+'*', search_attr, search_rec);
   while search_rec.name <> '' do
   begin
-    if not ((search_rec.name = '.') or (search_rec.name = '..')) and (search_rec.attr = search_attr) then 
+    if not ((search_rec.name = '.') or (search_rec.name = '..')) and ((search_rec.attr or faDirectory) = search_rec.attr) then 
       DoConversion(AInDir+PathDelim+search_rec.name, AOutDir+PathDelim+search_rec.name, ARecurse);
     if FindNext(search_rec) <> 0 then break;
   end;
@@ -124,5 +129,5 @@ begin
   in_dir := ExpandFileName(in_dir);
   writeln('Converting all .sad documents from ', in_dir, ' (', modestr, ')...');
   DoConversion(in_dir, out_dir, pos('Non', modestr) = 0);
-  sad_parser.Free;
+  if Assigned(sad_parser) then sad_parser.Free;
 end.
