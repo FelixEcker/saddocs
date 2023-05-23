@@ -6,7 +6,7 @@ program saddocs;
 uses Dos, SysUtils, uSADParser, uSADHTML;
 
 const
-  VERSION = '1.0.0';
+  VERSION = '1.1.0';
   AUTHOR = 'Marie Eckert';
 
 var
@@ -27,15 +27,32 @@ begin
 end;
   
 function Convert(const APath: String; const AOutdir: String): Boolean;
+var
+  doc: TSADocument;
+  html: String;
+  out_file: TextFile;
 begin
-  Convert := True;
-  
   if not DirectoryExists(AOutDir) then
     ForceDirectories(AOutDir);
 
-  {AOutDir+
-    PathDelim+ExtractFileName(APath)+'.html', 
-    binhome+'style.css', false);}
+  Assign(doc.doc_file, APath);
+  ReSet(doc.doc_file);
+  Convert := ParseStructure(doc);
+  if not Convert then
+  begin
+    writeln('ERROR', sLineBreak, parse_error);
+    write('Continue? (Y/n)');
+    readln(html);
+    if UpperCase(html) = 'n' then
+      halt;
+    exit;
+  end;
+
+  html := GenerateHTML(doc.root_section, True, binhome+'style.css');
+  Assign(out_file, AOutDir+PathDelim+ExtractFileName(APath)+'.html');
+  ReWrite(out_file);
+  Write(out_file, html);
+  Close(out_file);
 end;
 
 procedure DoConversion(AInDir, AOutDir: String; const ARecurse: Boolean);
