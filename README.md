@@ -1,5 +1,3 @@
-
-
 # saddocs
 A tool to batch-convert all .sad files in a directory to html.
 
@@ -21,7 +19,7 @@ saddocs requires the fpc compiler of version 3.2.2 or newer. If it is on the pat
 To include debugging symbols simply add `debug` as a parameter to the script.
 
 ## Licenses
-saddocs uses the uSADParser and uSADHTMLParser units from [sadv](https://github.com/FelixEcker/sad), which is licensed under the BSD 3-Clause license.
+saddocs uses the uSADParser and uSADHTML units from [sad](https://github.com/FelixEcker/sad), which is licensed under the BSD 3-Clause license.
 
 saddocs is lincensed under the BSD 3-Clause license, see the LICENSE file in this repository.
 
