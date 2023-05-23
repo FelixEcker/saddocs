@@ -1,17 +1,16 @@
-{$mode objfpc}
+{$mode fpc}
 program saddocs;
 
 {$H+}
 
-uses Dos, SysUtils, uSADParser, uSADHTMLParser;
+uses Dos, SysUtils, uSADParser, uSADHTML;
 
 const
-  VERSION = '1.0.0';
+  VERSION = '1.1.0';
   AUTHOR = 'Marie Eckert';
 
 var
   binhome: String;
-  sad_parser: TSADHTMLParser;
 
 procedure Help;
 begin
@@ -28,34 +27,32 @@ begin
 end;
   
 function Convert(const APath: String; const AOutdir: String): Boolean;
+var
+  doc: TSADocument;
+  html: String;
+  out_file: TextFile;
 begin
-  result := True;
-  try
-    if not Assigned(sad_parser) then
-      sad_parser := TSADHTMLParser.Create;
+  if not DirectoryExists(AOutDir) then
+    ForceDirectories(AOutDir);
 
-    if not DirectoryExists(AOutDir) then
-      ForceDirectories(AOutDir);
-
-    sad_parser.Path := APath;
-    sad_parser.section := '.';
-    sad_parser.Open;
-    
-    sad_parser.WriteHtml(AOutDir+
-      PathDelim+ExtractFileName(APath)+'.html', 
-      binhome+'style.css', false);
-  except
-    on e: EMalformedDocumentException do
-    begin
-      writeln('Couldn''t convert: Input File is Malformed: ', sLineBreak, e.Message);
-      result := False;
-    end;
-    on e: ENoSuchSectionException do
-    begin
-      writeln('Couldn''t convert: ', sLineBreak, e.Message);
-      result := False;
-    end;
+  Assign(doc.doc_file, APath);
+  ReSet(doc.doc_file);
+  Convert := ParseStructure(doc);
+  if not Convert then
+  begin
+    writeln('ERROR', sLineBreak, parse_error);
+    write('Continue? (Y/n)');
+    readln(html);
+    if UpperCase(html) = 'n' then
+      halt;
+    exit;
   end;
+
+  html := GenerateHTML(doc.root_section, True, binhome+'style.css');
+  Assign(out_file, AOutDir+PathDelim+ExtractFileName(APath)+'.html');
+  ReWrite(out_file);
+  Write(out_file, html);
+  Close(out_file);
 end;
 
 procedure DoConversion(AInDir, AOutDir: String; const ARecurse: Boolean);
@@ -129,5 +126,4 @@ begin
   in_dir := ExpandFileName(in_dir);
   writeln('Converting all .sad documents from ', in_dir, ' (', modestr, ')...');
   DoConversion(in_dir, out_dir, pos('Non', modestr) = 0);
-  if Assigned(sad_parser) then sad_parser.Free;
 end.
